@@ -1,21 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Plus, User, Mail, Phone, Briefcase, Building2, Pencil, Trash2, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import type { Database } from '../lib/database.types';
-
-type Contact = Database['public']['Tables']['contacts']['Row'];
-type Company = Database['public']['Tables']['companies']['Row'];
-
-interface ContactWithCompany extends Contact {
-  companies?: Company | null;
-}
+import { useState } from 'react';
+import { Plus, User, Mail, Phone, Building2, Pencil, Trash2, X, Search, Sparkles } from 'lucide-react';
+import { useData } from '../contexts/DataContext';
+import { AiUpsellModal } from './AiUpsellModal';
 
 export function Contacts() {
-  const [contacts, setContacts] = useState<ContactWithCompany[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { contacts, companies, createContact, updateContact, deleteContact } = useData();
   const [showModal, setShowModal] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [showAiModal, setShowAiModal] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -26,84 +19,24 @@ export function Contacts() {
     notes: '',
   });
 
-  useEffect(() => {
-    loadContacts();
-    loadCompanies();
-  }, []);
-
-  const loadCompanies = async () => {
-    const { data } = await supabase
-      .from('companies')
-      .select('*')
-      .order('name');
-
-    if (data) {
-      setCompanies(data);
-    }
-  };
-
-  const loadContacts = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('contacts')
-      .select('*, companies(*)')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading contacts:', error);
-    } else {
-      setContacts(data || []);
-    }
-    setLoading(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const dataToSubmit = {
-      ...formData,
-      company_id: formData.company_id || null,
-    };
-
-    if (editingContact) {
-      const { error } = await supabase
-        .from('contacts')
-        .update({ ...dataToSubmit, updated_at: new Date().toISOString() })
-        .eq('id', editingContact.id);
-
-      if (error) {
-        console.error('Error updating contact:', error);
-        return;
-      }
+    const data = { ...formData, company_id: formData.company_id || null };
+    if (editingId) {
+      updateContact(editingId, data);
     } else {
-      const { error } = await supabase.from('contacts').insert([dataToSubmit]);
-
-      if (error) {
-        console.error('Error creating contact:', error);
-        return;
-      }
+      createContact(data);
     }
-
-    setShowModal(false);
-    setEditingContact(null);
-    resetForm();
-    loadContacts();
+    handleCloseModal();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) return;
-
-    const { error } = await supabase.from('contacts').delete().eq('id', id);
-
-    if (error) {
-      console.error('Error deleting contact:', error);
-    } else {
-      loadContacts();
-    }
+  const handleDelete = (id: string) => {
+    if (!confirm('Supprimer ce contact ?')) return;
+    deleteContact(id);
   };
 
-  const handleEdit = (contact: Contact) => {
-    setEditingContact(contact);
+  const handleEdit = (contact: typeof contacts[0]) => {
+    setEditingId(contact.id);
     setFormData({
       first_name: contact.first_name,
       last_name: contact.last_name,
@@ -117,129 +50,157 @@ export function Contacts() {
   };
 
   const resetForm = () => {
-    setFormData({
-      first_name: '',
-      last_name: '',
-      email: '',
-      phone: '',
-      job_title: '',
-      company_id: '',
-      notes: '',
-    });
+    setFormData({ first_name: '', last_name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' });
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setEditingContact(null);
+    setEditingId(null);
     resetForm();
   };
 
+  const filtered = contacts.filter((c) =>
+    `${c.first_name} ${c.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
+    c.email.toLowerCase().includes(search.toLowerCase()) ||
+    c.job_title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const withCompany = contacts.filter(c => c.company_id).length;
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Contacts</h2>
-          <p className="text-slate-600 mt-1">Gérez vos contacts professionnels</p>
+          <h2 className="text-2xl font-bold text-gray-900">Contacts</h2>
+          <p className="text-gray-500 mt-1">{contacts.length} contact{contacts.length > 1 ? 's' : ''} au total</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
-        >
-          <Plus className="w-5 h-5" />
+        <button onClick={() => setShowModal(true)} className="btn-primary">
+          <Plus className="w-4 h-4" />
           <span>Nouveau contact</span>
         </button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 border-t-blue-600"></div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="card px-4 py-3">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.length}</p>
         </div>
-      ) : contacts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <User className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucun contact</h3>
-          <p className="text-slate-600 mb-6">Commencez par ajouter votre premier contact</p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
-          >
-            <Plus className="w-5 h-5" />
+        <div className="card px-4 py-3">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avec entreprise</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{withCompany}</p>
+        </div>
+        <div className="card px-4 py-3">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Independants</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.length - withCompany}</p>
+        </div>
+        <div className="card px-4 py-3">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avec email</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.filter(c => c.email).length}</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      {contacts.length > 0 && (
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher par nom, email, fonction..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field pl-10"
+          />
+        </div>
+      )}
+
+      {contacts.length === 0 ? (
+        <div className="card p-12 text-center">
+          <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <User className="w-7 h-7 text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun contact</h3>
+          <p className="text-gray-500 mb-6">Commencez par ajouter votre premier contact</p>
+          <button onClick={() => setShowModal(true)} className="btn-primary">
+            <Plus className="w-4 h-4" />
             <span>Ajouter un contact</span>
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {contacts.map((contact) => (
-            <div
-              key={contact.id}
-              className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <User className="w-6 h-6 text-green-600" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((contact) => (
+            <div key={contact.id} className="card p-5">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-emerald-700">
+                      {contact.first_name.charAt(0)}{contact.last_name.charAt(0)}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">
                       {contact.first_name} {contact.last_name}
                     </h3>
                     {contact.job_title && (
-                      <p className="text-sm text-slate-600">{contact.job_title}</p>
+                      <p className="text-sm text-gray-500 truncate">{contact.job_title}</p>
                     )}
                   </div>
                 </div>
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => handleEdit(contact)}
-                    className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                  >
-                    <Pencil className="w-4 h-4" />
+                <div className="flex gap-0.5 flex-shrink-0">
+                  <button onClick={() => setShowAiModal(true)} className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" title="Enrichir avec l'IA">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(contact.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  <button onClick={() => handleEdit(contact)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-surface-100 rounded-lg transition">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => handleDelete(contact.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 pt-3 border-t border-surface-100">
                 {contact.companies && (
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
-                    <Building2 className="w-4 h-4" />
-                    <span>{contact.companies.name}</span>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Building2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{contact.companies.name}</span>
                   </div>
                 )}
                 {contact.email && (
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
-                    <Mail className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                     <span className="truncate">{contact.email}</span>
                   </div>
                 )}
                 {contact.phone && (
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
-                    <Phone className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                     <span>{contact.phone}</span>
                   </div>
                 )}
               </div>
             </div>
           ))}
+          {filtered.length === 0 && search && (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-500">Aucun resultat pour "{search}"</p>
+            </div>
+          )}
         </div>
       )}
 
+      <AiUpsellModal open={showAiModal} onClose={() => setShowAiModal(false)} feature="Enrichir le profil du contact (trouver l'email, le telephone, le profil LinkedIn...)" />
+
+      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-900">
-                {editingContact ? 'Modifier le contact' : 'Nouveau contact'}
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="sticky top-0 bg-white border-b border-surface-200 px-6 py-4 flex justify-between items-center rounded-t-2xl">
+              <h3 className="text-lg font-bold text-gray-900">
+                {editingId ? 'Modifier le contact' : 'Nouveau contact'}
               </h3>
-              <button
-                onClick={handleCloseModal}
-                className="p-2 hover:bg-slate-100 rounded-lg transition"
-              >
+              <button onClick={handleCloseModal} className="btn-ghost p-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -247,113 +208,45 @@ export function Contacts() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Prénom *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Prenom *</label>
+                  <input type="text" value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} required className="input-field" />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Nom *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom *</label>
+                  <input type="text" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} required className="input-field" />
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Entreprise
-                </label>
-                <select
-                  value={formData.company_id}
-                  onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Entreprise</label>
+                <select value={formData.company_id} onChange={(e) => setFormData({ ...formData, company_id: e.target.value })} className="input-field">
                   <option value="">Aucune entreprise</option>
                   {companies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
+                    <option key={company.id} value={company.id}>{company.name}</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Fonction
-                </label>
-                <input
-                  type="text"
-                  value={formData.job_title}
-                  onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fonction</label>
+                <input type="text" value={formData.job_title} onChange={(e) => setFormData({ ...formData, job_title: e.target.value })} className="input-field" />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                  <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input-field" />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Téléphone
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Telephone</label>
+                  <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input-field" />
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
+                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={3} className="input-field" />
               </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
-                >
-                  {editingContact ? 'Mettre à jour' : 'Créer'}
+              <div className="flex justify-end gap-3 pt-4 border-t border-surface-200">
+                <button type="button" onClick={handleCloseModal} className="btn-secondary">Annuler</button>
+                <button type="submit" className="btn-primary">
+                  {editingId ? 'Mettre a jour' : 'Creer'}
                 </button>
               </div>
             </form>
