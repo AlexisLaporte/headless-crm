@@ -1,4 +1,4 @@
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface Props {
   open: boolean;
