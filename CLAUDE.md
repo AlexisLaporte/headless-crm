@@ -75,6 +75,21 @@ Status contact dans campagne : `pending`, `sent`, `opened`, `clicked`, `responde
 
 Toutes les données seed sont partagées (pas de filtrage par user_id côté front).
 
+## Preview Deployments
+
+Chaque PR ouverte génère un aperçu sur un sous-domaine unique.
+
+- **URL** : `https://{branch-slug}.yacrm.tuls.me`
+- **Deploy** : `.github/workflows/deploy-preview.yml` (on: pull_request opened/synchronize/reopened)
+- **Cleanup** : `.github/workflows/cleanup-preview.yml` (on: pull_request closed)
+- **Fichiers serveur** : `/var/www/yacrm/preview/{branch-slug}/`
+- **Nginx** : `/etc/nginx/sites-available/yacrm-preview` (regex server_name wildcard)
+- **SSL** : Cert `yacrm-wildcard` (`*.yacrm.tuls.me`) via `certbot-dns-scaleway`, auto-renew
+- **DNS** : Record A wildcard `*.yacrm` → `51.15.225.121`
+- **PWA** : désactivée en preview (`YACRM_PREVIEW=true` dans le build)
+
+Slug : `feat/My-Branch!` → `feat-my-branch` (lowercase, alphanum+hyphens, max 63 chars)
+
 ## Deployment
 
 Site statique déployé sur **yacrm.tuls.me**.
