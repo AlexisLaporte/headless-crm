@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Megaphone, Calendar, DollarSign, Users, Pencil, Trash2, X, CheckCircle2, Search, Sparkles } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { CampaignDetail } from './CampaignDetail';
 import { AiUpsellModal } from './AiUpsellModal';
 import type { Campaign } from '../data/seed';
 
 export function Campaigns() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
     campaigns, allContacts,
     createCampaign, updateCampaign, deleteCampaign,
@@ -15,7 +17,6 @@ export function Campaigns() {
   const [showModal, setShowModal] = useState(false);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [selectedCampaignForContacts, setSelectedCampaignForContacts] = useState<Campaign | null>(null);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [campaignContacts, setCampaignContacts] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -32,6 +33,19 @@ export function Campaigns() {
     subject: '',
     message_body: '',
   });
+
+  // Handle edit-from-detail via location.state
+  useEffect(() => {
+    const state = location.state as { editCampaignId?: string } | null;
+    if (state?.editCampaignId) {
+      const campaign = campaigns.find((c) => c.id === state.editCampaignId);
+      if (campaign) {
+        handleEdit(campaign);
+      }
+      // Clear state so it doesn't re-trigger
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,12 +66,10 @@ export function Campaigns() {
   const handleDelete = (id: string) => {
     if (!confirm('Supprimer cette campagne ?')) return;
     deleteCampaign(id);
-    setSelectedCampaignId(null);
   };
 
   const handleEdit = (campaign: Campaign) => {
     setEditingId(campaign.id);
-    setSelectedCampaignId(null);
     setFormData({
       name: campaign.name,
       type: campaign.type,
@@ -121,17 +133,6 @@ export function Campaigns() {
 
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const totalBudget = campaigns.reduce((sum, c) => sum + c.budget, 0);
-
-  if (selectedCampaignId) {
-    return (
-      <CampaignDetail
-        campaignId={selectedCampaignId}
-        onBack={() => setSelectedCampaignId(null)}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
-    );
-  }
 
   return (
     <div>
@@ -198,7 +199,7 @@ export function Campaigns() {
           {filtered.map((campaign) => (
             <div
               key={campaign.id}
-              onClick={() => setSelectedCampaignId(campaign.id)}
+              onClick={() => navigate(`/app/campaigns/${campaign.id}`)}
               className="card p-5 cursor-pointer group"
             >
               <div className="flex justify-between items-start mb-3">

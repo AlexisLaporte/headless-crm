@@ -1,22 +1,17 @@
 import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Trash2, Megaphone, Calendar, DollarSign, Mail, Users, Sparkles } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { AiUpsellModal } from './AiUpsellModal';
-import type { Campaign } from '../data/seed';
 
-interface Props {
-  campaignId: string;
-  onBack: () => void;
-  onEdit: (campaign: Campaign) => void;
-  onDelete: (id: string) => void;
-}
-
-export function CampaignDetail({ campaignId, onBack, onEdit, onDelete }: Props) {
+export function CampaignDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiFeature, setAiFeature] = useState('');
-  const { campaigns, allContacts } = useData();
+  const { campaigns, allContacts, deleteCampaign } = useData();
 
-  const campaign = campaigns.find((c) => c.id === campaignId);
+  const campaign = campaigns.find((c) => c.id === id);
   const campaignContactEntries = campaign?.campaign_contacts || [];
 
   const contactsWithStatus = campaignContactEntries.map((cc) => {
@@ -62,11 +57,24 @@ export function CampaignDetail({ campaignId, onBack, onEdit, onDelete }: Props) 
     }
   };
 
+  const handleEdit = () => {
+    if (campaign) {
+      navigate('/app/campaigns', { state: { editCampaignId: campaign.id } });
+    }
+  };
+
+  const handleDelete = () => {
+    if (!campaign) return;
+    if (!confirm('Supprimer cette campagne ?')) return;
+    deleteCampaign(campaign.id);
+    navigate('/app/campaigns');
+  };
+
   if (!campaign) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Campagne introuvable</p>
-        <button onClick={onBack} className="mt-4 text-brand-600 hover:text-brand-700 font-medium transition-colors">
+        <button onClick={() => navigate('/app/campaigns')} className="mt-4 text-brand-600 hover:text-brand-700 font-medium transition-colors">
           Retour aux campagnes
         </button>
       </div>
@@ -78,7 +86,7 @@ export function CampaignDetail({ campaignId, onBack, onEdit, onDelete }: Props) 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-surface-100 rounded-xl transition">
+          <button onClick={() => navigate('/app/campaigns')} className="p-2 hover:bg-surface-100 rounded-xl transition">
             <ArrowLeft className="w-5 h-5 text-gray-500" />
           </button>
           <div className="flex items-center gap-3">
@@ -97,11 +105,11 @@ export function CampaignDetail({ campaignId, onBack, onEdit, onDelete }: Props) 
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => onEdit(campaign)} className="btn-secondary">
+          <button onClick={handleEdit} className="btn-secondary">
             <Pencil className="w-4 h-4" />
             <span>Modifier</span>
           </button>
-          <button onClick={() => onDelete(campaign.id)} className="btn-ghost text-red-600 hover:bg-red-50 hover:text-red-700">
+          <button onClick={handleDelete} className="btn-ghost text-red-600 hover:bg-red-50 hover:text-red-700">
             <Trash2 className="w-4 h-4" />
             <span>Supprimer</span>
           </button>

@@ -1,12 +1,15 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { demoUsers, DemoUser } from '../data/seed';
 import { LayoutDashboard, ArrowRight, Building2, Users, Megaphone, Zap, Shield, Globe } from 'lucide-react';
 
 export function Auth() {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   const handleSelect = (user: DemoUser) => {
     signIn(user);
+    navigate('/app');
   };
 
   return (

@@ -1,16 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Building2, Mail, Phone, Globe, MapPin, Pencil, Trash2, X, Search, Sparkles } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { AiUpsellModal } from './AiUpsellModal';
-import { CompanyDetail } from './CompanyDetail';
 
 export function Companies() {
+  const navigate = useNavigate();
   const { companies, createCompany, updateCompany, deleteCompany } = useData();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showAiModal, setShowAiModal] = useState(false);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     industry: '',
@@ -36,9 +36,6 @@ export function Companies() {
   const handleDelete = (id: string) => {
     if (!confirm('Supprimer cette entreprise ?')) return;
     deleteCompany(id);
-    if (selectedCompanyId === id) {
-      setSelectedCompanyId(null);
-    }
   };
 
   const handleEdit = (company: typeof companies[0]) => {
@@ -74,17 +71,6 @@ export function Companies() {
   );
 
   const industries = [...new Set(companies.map(c => c.industry).filter(Boolean))];
-
-  // Vue detail
-  if (selectedCompanyId) {
-    return (
-      <CompanyDetail
-        companyId={selectedCompanyId}
-        onBack={() => setSelectedCompanyId(null)}
-        onDelete={handleDelete}
-      />
-    );
-  }
 
   return (
     <div>
@@ -152,7 +138,7 @@ export function Companies() {
             <div key={company.id} className="card p-5 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start mb-3">
                 <button
-                  onClick={() => setSelectedCompanyId(company.id)}
+                  onClick={() => navigate(`/app/companies/${company.id}`)}
                   className="flex items-center gap-3 min-w-0 text-left hover:opacity-80 transition-opacity"
                 >
                   <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -166,7 +152,7 @@ export function Companies() {
                   </div>
                 </button>
                 <div className="flex gap-0.5 flex-shrink-0">
-                  <button onClick={() => setSelectedCompanyId(company.id)} className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition" title="Voir la fiche">
+                  <button onClick={() => navigate(`/app/companies/${company.id}`)} className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition" title="Voir la fiche">
                     <Building2 className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => setShowAiModal(true)} className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" title="Enrichir avec l'IA">
