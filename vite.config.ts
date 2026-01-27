@@ -2,10 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const isPreview = process.env.YACRM_PREVIEW === 'true';
+
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
+    ...(!isPreview ? [VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
@@ -40,7 +42,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
-    }),
+    })] : []),
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
