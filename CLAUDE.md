@@ -77,7 +77,13 @@ Toutes les données seed sont partagées (pas de filtrage par user_id côté fro
 
 ## Deployment
 
-Site statique. Build `dist/` à déployer sur yacrm.tuls.me.
+Site statique déployé sur **yacrm.tuls.me**.
+
+- **CI/CD** : `.github/workflows/deploy.yml` — build + scp `dist/` vers `/var/www/yacrm` sur push main
+- **Dev local** : `dev/start.sh` — Vite port 3001, logs dans `dev/dev.log`
+- **DNS** : Scaleway DNS, A record `yacrm` → `51.15.225.121`
+- **SSL** : Let's Encrypt via cert `tuls.me` (multi-SAN)
+- **Nginx** : `/etc/nginx/sites-enabled/yacrm`, SPA `try_files → /index.html`
 
 ## Docs
 
