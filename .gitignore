@@ -24,3 +24,5 @@ dist-ssr
 dev/dev.log
 drizzle/
 dist-server/
+.bolt/
+supabase/
