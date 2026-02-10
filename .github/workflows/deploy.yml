@@ -20,21 +20,32 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 51.15.225.121
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            mkdir -p /var/www/yacrm
-
-      - name: Upload dist
+      - name: Upload frontend
         uses: appleboy/scp-action@v0.1.7
         with:
           host: 51.15.225.121
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist/*"
-          target: "/var/www/yacrm"
+          target: "/var/www/headless-crm"
           strip_components: 1
+
+      - name: Upload backend
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 51.15.225.121
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "server/*,package.json,package-lock.json"
+          target: "/opt/headless-crm"
+
+      - name: Install deps & restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 51.15.225.121
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/headless-crm
+            npm install
+            systemctl restart headless-crm

@@ -1,5 +1,13 @@
-import { useState } from 'react';
-import { Mail, Check, AlertCircle, Eye, EyeOff, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Check, AlertCircle, Eye, EyeOff, ExternalLink, Key, Plus, Trash2, Copy, CheckCircle2 } from 'lucide-react';
+import { api } from '../lib/api';
+
+interface ApiToken {
+  id: string;
+  name: string;
+  last_used_at: string | null;
+  created_at: string;
+}
 
 export function Settings() {
   const [apiKey, setApiKey] = useState('');
@@ -8,6 +16,54 @@ export function Settings() {
   const [testing, setTesting] = useState(false);
   const [fromEmail, setFromEmail] = useState('');
   const [fromName, setFromName] = useState('');
+
+  // API Tokens state
+  const [tokens, setTokens] = useState<ApiToken[]>([]);
+  const [newTokenName, setNewTokenName] = useState('');
+  const [creatingToken, setCreatingToken] = useState(false);
+  const [newTokenValue, setNewTokenValue] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    loadTokens();
+  }, []);
+
+  const loadTokens = async () => {
+    try {
+      const rows = await api.get<ApiToken[]>('/tokens');
+      setTokens(rows);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCreateToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTokenName.trim()) return;
+    setCreatingToken(true);
+    try {
+      const result = await api.post<{ id: string; name: string; value: string; created_at: string }>('/tokens', { name: newTokenName });
+      setNewTokenValue(result.value);
+      setNewTokenName('');
+      await loadTokens();
+    } finally {
+      setCreatingToken(false);
+    }
+  };
+
+  const handleDeleteToken = async (id: string) => {
+    if (!confirm('Revoquer ce jeton ?')) return;
+    await api.delete(`/tokens/${id}`);
+    await loadTokens();
+  };
+
+  const handleCopyToken = async () => {
+    if (newTokenValue) {
+      await navigator.clipboard.writeText(newTokenValue);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +86,94 @@ export function Settings() {
     <div>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Parametres</h2>
-        <p className="text-gray-500 mt-1">Configuration de l'envoi d'emails</p>
+        <p className="text-gray-500 mt-1">Configuration de votre compte</p>
       </div>
 
       <div className="max-w-2xl space-y-6">
+        {/* API Tokens */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+              <Key className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900">Jetons API</h3>
+              <p className="text-sm text-gray-500">Authentification pour les integrations externes</p>
+            </div>
+          </div>
+
+          {/* New token value display */}
+          {newTokenValue && (
+            <div className="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <p className="text-sm font-medium text-emerald-800">Jeton cree avec succes</p>
+              </div>
+              <p className="text-xs text-emerald-600 mb-2">Copiez-le maintenant, il ne sera plus affiche.</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-white px-3 py-2 rounded-lg border border-emerald-200 font-mono break-all">
+                  {newTokenValue}
+                </code>
+                <button
+                  onClick={handleCopyToken}
+                  className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition flex-shrink-0"
+                  title="Copier"
+                >
+                  {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              <button
+                onClick={() => setNewTokenValue(null)}
+                className="mt-2 text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                Fermer
+              </button>
+            </div>
+          )}
+
+          {/* Create token form */}
+          <form onSubmit={handleCreateToken} className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newTokenName}
+              onChange={(e) => setNewTokenName(e.target.value)}
+              placeholder="Nom du jeton (ex: CI/CD, Zapier...)"
+              className="input-field flex-1"
+              required
+            />
+            <button type="submit" disabled={creatingToken || !newTokenName.trim()} className="btn-primary flex-shrink-0">
+              <Plus className="w-4 h-4" />
+              <span>Creer</span>
+            </button>
+          </form>
+
+          {/* Token list */}
+          {tokens.length === 0 ? (
+            <p className="text-sm text-gray-400 italic py-2">Aucun jeton API</p>
+          ) : (
+            <div className="space-y-2">
+              {tokens.map((token) => (
+                <div key={token.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl border border-surface-100">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">{token.name}</p>
+                    <p className="text-xs text-gray-400">
+                      Cree le {new Date(token.created_at).toLocaleDateString('fr-FR')}
+                      {token.last_used_at && ` · Utilise le ${new Date(token.last_used_at).toLocaleDateString('fr-FR')}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteToken(token.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                    title="Revoquer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Email Provider */}
         <div className="card p-6">
           <div className="flex items-center gap-3 mb-5">

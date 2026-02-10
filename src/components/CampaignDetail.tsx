@@ -9,14 +9,14 @@ export function CampaignDetail() {
   const navigate = useNavigate();
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiFeature, setAiFeature] = useState('');
-  const { campaigns, allContacts, deleteCampaign } = useData();
+  const { campaigns, allPeople, deleteCampaign } = useData();
 
   const campaign = campaigns.find((c) => c.id === id);
-  const campaignContactEntries = campaign?.campaign_contacts || [];
+  const campaignPersonEntries = campaign?.campaign_people || [];
 
-  const contactsWithStatus = campaignContactEntries.map((cc) => {
-    const contact = allContacts.find((c) => c.id === cc.contact_id);
-    return { ...cc, contact };
+  const peopleWithStatus = campaignPersonEntries.map((cc) => {
+    const person = allPeople.find((p) => p.id === cc.person_id);
+    return { ...cc, person };
   });
 
   const getStatusColor = (status: string) => {
@@ -37,7 +37,7 @@ export function CampaignDetail() {
     }
   };
 
-  const getContactStatusLabel = (status: string) => {
+  const getPersonStatusLabel = (status: string) => {
     switch (status) {
       case 'sent': return 'Envoye';
       case 'opened': return 'Ouvert';
@@ -47,7 +47,7 @@ export function CampaignDetail() {
     }
   };
 
-  const getContactStatusColor = (status: string) => {
+  const getPersonStatusColor = (status: string) => {
     switch (status) {
       case 'sent': return 'bg-blue-100 text-blue-700';
       case 'opened': return 'bg-emerald-100 text-emerald-700';
@@ -63,10 +63,10 @@ export function CampaignDetail() {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!campaign) return;
     if (!confirm('Supprimer cette campagne ?')) return;
-    deleteCampaign(campaign.id);
+    await deleteCampaign(campaign.id);
     navigate('/app/campaigns');
   };
 
@@ -204,12 +204,12 @@ export function CampaignDetail() {
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-gray-400" />
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-                Contacts ({contactsWithStatus.length})
+                Personnes ({peopleWithStatus.length})
               </h3>
             </div>
 
-            {contactsWithStatus.length === 0 ? (
-              <p className="text-sm text-gray-400 italic py-4">Aucun contact associe a cette campagne</p>
+            {peopleWithStatus.length === 0 ? (
+              <p className="text-sm text-gray-400 italic py-4">Aucune personne associee a cette campagne</p>
             ) : (
               <div className="overflow-x-auto -mx-5">
                 <table className="w-full">
@@ -222,29 +222,29 @@ export function CampaignDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {contactsWithStatus.map((cc) => (
+                    {peopleWithStatus.map((cc) => (
                       <tr key={cc.id} className="border-b border-surface-100 hover:bg-surface-50 transition-colors">
                         <td className="py-3 px-5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                               <span className="text-[10px] font-bold text-emerald-700">
-                                {cc.contact ? `${cc.contact.first_name.charAt(0)}${cc.contact.last_name.charAt(0)}` : '?'}
+                                {cc.person ? `${cc.person?.first_name.charAt(0)}${cc.person?.last_name.charAt(0)}` : '?'}
                               </span>
                             </div>
                             <span className="text-sm font-medium text-gray-900">
-                              {cc.contact ? `${cc.contact.first_name} ${cc.contact.last_name}` : '-'}
+                              {cc.person ? `${cc.person?.first_name} ${cc.person?.last_name}` : '-'}
                             </span>
                           </div>
                         </td>
                         <td className="py-3 px-5 text-sm text-gray-600">
-                          {cc.contact?.email || '-'}
+                          {cc.person?.email || '-'}
                         </td>
                         <td className="py-3 px-5 text-sm text-gray-600 hidden sm:table-cell">
-                          {cc.contact?.job_title || '-'}
+                          {cc.person?.job_title || '-'}
                         </td>
                         <td className="py-3 px-5">
-                          <span className={`badge ${getContactStatusColor(cc.status)}`}>
-                            {getContactStatusLabel(cc.status)}
+                          <span className={`badge ${getPersonStatusColor(cc.status)}`}>
+                            {getPersonStatusLabel(cc.status)}
                           </span>
                         </td>
                       </tr>

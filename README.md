@@ -1,3 +1,3 @@
-# yacrm
+# Headless CRM
 
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/AlexisLaporte/yacrm)
+API-first contact management. Manage people, organizations, deals and campaigns through a REST API designed for AI agents and automations.

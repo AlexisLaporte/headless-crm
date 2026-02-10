@@ -9,15 +9,15 @@ export function Campaigns() {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    campaigns, allContacts,
+    campaigns, allPeople,
     createCampaign, updateCampaign, deleteCampaign,
-    getCampaignContactIds, saveCampaignContacts,
+    getCampaignPersonIds, saveCampaignPeople,
   } = useData();
 
   const [showModal, setShowModal] = useState(false);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [selectedCampaignForContacts, setSelectedCampaignForContacts] = useState<Campaign | null>(null);
-  const [campaignContacts, setCampaignContacts] = useState<string[]>([]);
+  const [campaignPeople, setCampaignPeople] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showAiModal, setShowAiModal] = useState(false);
@@ -47,7 +47,7 @@ export function Campaigns() {
     }
   }, [location.state]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
       ...formData,
@@ -56,16 +56,16 @@ export function Campaigns() {
       end_date: formData.end_date || null,
     };
     if (editingId) {
-      updateCampaign(editingId, data);
+      await updateCampaign(editingId, data);
     } else {
-      createCampaign(data);
+      await createCampaign(data);
     }
     handleCloseModal();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Supprimer cette campagne ?')) return;
-    deleteCampaign(id);
+    await deleteCampaign(id);
   };
 
   const handleEdit = (campaign: Campaign) => {
@@ -86,16 +86,16 @@ export function Campaigns() {
 
   const handleManageContacts = (campaign: Campaign) => {
     setSelectedCampaignForContacts(campaign);
-    setCampaignContacts(getCampaignContactIds(campaign.id));
+    setCampaignPeople(getCampaignPersonIds(campaign.id));
     setShowContactsModal(true);
   };
 
-  const handleSaveContacts = () => {
+  const handleSaveContacts = async () => {
     if (!selectedCampaignForContacts) return;
-    saveCampaignContacts(selectedCampaignForContacts.id, campaignContacts);
+    await saveCampaignPeople(selectedCampaignForContacts.id, campaignPeople);
     setShowContactsModal(false);
     setSelectedCampaignForContacts(null);
-    setCampaignContacts([]);
+    setCampaignPeople([]);
   };
 
   const resetForm = () => {
@@ -257,7 +257,7 @@ export function Campaigns() {
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Users className="w-3.5 h-3.5" />
-                    <span>{campaign.campaign_contacts?.length || 0} contacts</span>
+                    <span>{campaign.campaign_people?.length || 0} personnes</span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleManageContacts(campaign); }}
@@ -381,7 +381,7 @@ export function Campaigns() {
                 Contacts - {selectedCampaignForContacts.name}
               </h3>
               <button
-                onClick={() => { setShowContactsModal(false); setSelectedCampaignForContacts(null); setCampaignContacts([]); }}
+                onClick={() => { setShowContactsModal(false); setSelectedCampaignForContacts(null); setCampaignPeople([]); }}
                 className="btn-ghost p-2"
               >
                 <X className="w-5 h-5" />
@@ -391,42 +391,42 @@ export function Campaigns() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-gray-500">
-                  Selectionnez les contacts a associer a cette campagne
+                  Selectionnez les personnes a associer a cette campagne
                 </p>
                 <button
                   type="button"
-                  onClick={() => { setAiFeature('Suggerer automatiquement les contacts les plus pertinents pour cette campagne'); setShowAiModal(true); }}
+                  onClick={() => { setAiFeature('Suggerer automatiquement les personnes les plus pertinentes pour cette campagne'); setShowAiModal(true); }}
                   className="inline-flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors whitespace-nowrap ml-4"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Suggerer des contacts
+                  Suggerer des personnes
                 </button>
               </div>
 
               <div className="space-y-1 max-h-96 overflow-y-auto">
-                {allContacts.map((contact) => (
+                {allPeople.map((person) => (
                   <label
-                    key={contact.id}
+                    key={person.id}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-50 cursor-pointer transition"
                   >
                     <input
                       type="checkbox"
-                      checked={campaignContacts.includes(contact.id)}
+                      checked={campaignPeople.includes(person.id)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setCampaignContacts([...campaignContacts, contact.id]);
+                          setCampaignPeople([...campaignPeople, person.id]);
                         } else {
-                          setCampaignContacts(campaignContacts.filter((id) => id !== contact.id));
+                          setCampaignPeople(campaignPeople.filter((id) => id !== person.id));
                         }
                       }}
                       className="w-4 h-4 text-brand-600 rounded border-surface-300 focus:ring-2 focus:ring-brand-500/20"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 text-sm">
-                        {contact.first_name} {contact.last_name}
+                        {person.first_name} {person.last_name}
                       </p>
-                      {contact.email && (
-                        <p className="text-xs text-gray-500 truncate">{contact.email}</p>
+                      {person.email && (
+                        <p className="text-xs text-gray-500 truncate">{person.email}</p>
                       )}
                     </div>
                   </label>
@@ -435,8 +435,8 @@ export function Campaigns() {
 
               <div className="flex justify-between items-center pt-6 border-t border-surface-200 mt-6">
                 <p className="text-sm text-gray-500">
-                  {campaignContacts.length} contact{campaignContacts.length > 1 ? 's' : ''}{' '}
-                  selectionne{campaignContacts.length > 1 ? 's' : ''}
+                  {campaignPeople.length} personne{campaignPeople.length > 1 ? 's' : ''}{' '}
+                  selectionnee{campaignPeople.length > 1 ? 's' : ''}
                 </p>
                 <button onClick={handleSaveContacts} className="btn-primary">
                   <CheckCircle2 className="w-4 h-4" />

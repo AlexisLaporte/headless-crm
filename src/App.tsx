@@ -3,9 +3,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Auth } from './components/Auth';
 import { AuthGuard, GuestGuard } from './components/AuthGuard';
 import { Layout } from './components/Layout';
-import { Companies } from './components/Companies';
-import { CompanyDetail } from './components/CompanyDetail';
-import { Contacts } from './components/Contacts';
+import { Organizations } from './components/Organizations';
+import { OrganizationDetail } from './components/OrganizationDetail';
+import { People } from './components/People';
 import { Campaigns } from './components/Campaigns';
 import { CampaignDetail } from './components/CampaignDetail';
 import { Settings } from './components/Settings';
@@ -23,10 +23,10 @@ function App() {
         {/* Authenticated routes */}
         <Route element={<AuthGuard />}>
           <Route path="/app" element={<Layout />}>
-            <Route index element={<Navigate to="companies" replace />} />
-            <Route path="companies" element={<Companies />} />
-            <Route path="companies/:id" element={<CompanyDetail />} />
-            <Route path="contacts" element={<Contacts />} />
+            <Route index element={<Navigate to="organizations" replace />} />
+            <Route path="organizations" element={<Organizations />} />
+            <Route path="organizations/:id" element={<OrganizationDetail />} />
+            <Route path="people" element={<People />} />
             <Route path="campaigns" element={<Campaigns />} />
             <Route path="campaigns/:id" element={<CampaignDetail />} />
             <Route path="settings" element={<Settings />} />

@@ -1,106 +1,109 @@
-# YACRM
+# Headless CRM
 
-Yet Another CRM — app démo React SPA avec données en mémoire (pas de backend).
+API-first contact management — React SPA + Hono API, PostgreSQL, JWT auth, Google SSO.
 
 ## Stack
 
-- React 18 + TypeScript
-- Vite 5
-- Tailwind CSS 3 (custom theme: brand, accent, surface)
-- Lucide React (icônes)
-- Pas de backend — state React local + seed data
+- **Frontend**: React 18, TypeScript, Vite 5, Tailwind CSS 3, Lucide React, react-router-dom v7
+- **Backend**: Hono + @hono/node-server, TypeScript
+- **DB**: PostgreSQL + Drizzle ORM (`server/db/schema.ts`)
+- **Auth**: JWT (jose HS256), cookie `hcrm_session`, Google OAuth, API tokens (`hcrm_...`)
+- **Dev**: Vite proxy `/api` → API port, `concurrently`
+- **MCP**: `server/mcp.ts` — MCP server wrapping the REST API (17 tools)
 
 ## Architecture
 
 ```
-src/
-  App.tsx              # Root: AuthProvider > DataProvider > Layout
-  main.tsx             # Entry point
-  index.css            # Tailwind + custom component classes (btn-primary, card, input-field...)
-  components/
-    Auth.tsx            # Sélection de profil démo (3 users, pas de password)
-    Layout.tsx          # Sidebar desktop/mobile + nav ("YACRM" branding)
-    Companies.tsx       # CRUD entreprises
-    Contacts.tsx        # CRUD contacts (liés à company)
-    Campaigns.tsx       # CRUD campagnes + navigation vers détail
-    CampaignDetail.tsx  # Vue détail campagne (infos, message, contacts avec statuts)
-  contexts/
-    AuthContext.tsx      # Auth locale (DemoUser state, signIn/signOut)
-    DataContext.tsx      # Store in-memory CRUD (companies, contacts, campaigns, campaign_contacts)
-  data/
-    seed.ts             # Types + données démo (8 entreprises, 14 contacts, 5 campagnes, 19 associations)
+src/                              server/
+  App.tsx                           index.ts          # Hono app
+                                    mcp.ts            # MCP server (stdio)
+  contexts/                         cron.ts           # Task reminders (node-cron)
+    AuthContext.tsx                  db/
+    DataContext.tsx                    schema.ts       # Drizzle schema (11 tables)
+  components/                         seed.ts         # Demo data
+    Auth.tsx                        routes/
+    Layout.tsx                        auth.ts         # demo, google, me, logout
+    Organizations.tsx                 organizations.ts
+    OrganizationDetail.tsx            people.ts
+    People.tsx                        campaigns.ts
+    Campaigns.tsx                     deals.ts        # + auto-activities
+    CampaignDetail.tsx                activities.ts   # stage_change side-effects
+    Settings.tsx                      tasks.ts        # mark done → auto-activity
+  data/                               groups.ts       # + membership
+    seed.ts  # TS types               tokens.ts
 ```
 
 ## Commands
 
 ```sh
-npm run dev        # Dev server (localhost:5173)
-npm run build      # Build production → dist/
-npm run typecheck  # tsc --noEmit
-npm run lint       # ESLint
+./dev/start.sh         # Vite :5173 + API :5172 (kill-before-start)
+npm run build          # Frontend → dist/
+npm run typecheck      # tsc --noEmit
+npm run mcp            # MCP server (stdio, needs HCRM_API_TOKEN)
+npm run db:push        # drizzle-kit push (schema → DB)
+npm run db:seed        # Insert demo data
+npm run start:server   # Production backend
 ```
+
+## Environment
+
+`.env` (see `.env.example`):
+```
+DATABASE_URL=postgres://hcrm:...@localhost:5432/hcrm
+AUTH_SECRET=...
+GOOGLE_CLIENT_ID=819344317236-...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
+PUBLIC_URL=http://localhost:5173
+```
+
+Local dev uses SSH tunnel to prod DB: `DATABASE_URL=postgres://hcrm:...@localhost:15432/hcrm`
 
 ## Conventions
 
-- Navigation par state local (`activeTab` dans App.tsx), pas de router
-- Composants page = CRUD complet avec modals inline
-- Vue détail = state `selectedXxxId` dans le composant parent, rendu conditionnel
-- Types définis dans `seed.ts` (Company, Contact, Campaign, CampaignContact, DemoUser)
-- UI en français, code/variables en anglais
-- Tailwind classes directement dans JSX + classes utilitaires dans index.css
-- Données en mémoire, reset au rechargement de page
+- Page components = full CRUD with inline modals
+- CRUD via DataContext (async, calls REST API)
+- Types in `src/data/seed.ts` — Organization, Person, Campaign, Deal, Activity, Task, Group
+- UI in French (except landing page), code in English
+- All data filtered by `user_id` server-side
+- Stage changes on deals go through activities (not direct update)
 
-## Data Model
+## Auth
 
-4 entités, toutes gérées en state React via `DataContext` :
-
-| Entité | Description | Relations |
-|--------|-------------|-----------|
-| `Company` | Entreprises | — |
-| `Contact` | Personnes | `company_id` → Company |
-| `Campaign` | Campagnes marketing | — |
-| `CampaignContact` | Junction campagne↔contact | `campaign_id`, `contact_id` |
-
-Champs clés `Campaign` : `name`, `type`, `status`, `start_date`, `end_date`, `budget`, `description`, `subject`, `message_body`.
-
-Status campagne : `draft`, `active`, `paused`, `completed`.
-Status contact dans campagne : `pending`, `sent`, `opened`, `clicked`, `responded`.
-
-## Demo Mode
-
-3 profils pré-remplis (pas de mot de passe) :
-- Marie Dupont — Directrice Commerciale
-- Thomas Martin — Responsable Marketing
-- Sophie Bernard — Account Manager
-
-Toutes les données seed sont partagées (pas de filtrage par user_id côté front).
-
-## Preview Deployments
-
-Chaque PR ouverte génère un aperçu sur un sous-domaine unique.
-
-- **URL** : `https://{branch-slug}.yacrm.tuls.me`
-- **Deploy** : `.github/workflows/deploy-preview.yml` (on: pull_request opened/synchronize/reopened)
-- **Cleanup** : `.github/workflows/cleanup-preview.yml` (on: pull_request closed)
-- **Fichiers serveur** : `/var/www/yacrm/preview/{branch-slug}/`
-- **Nginx** : `/etc/nginx/sites-available/yacrm-preview` (regex server_name wildcard)
-- **SSL** : Cert `yacrm-wildcard` (`*.yacrm.tuls.me`) via `certbot-dns-scaleway`, auto-renew
-- **DNS** : Record A wildcard `*.yacrm` → `51.15.225.121`
-- **PWA** : désactivée en preview (`YACRM_PREVIEW=true` dans le build)
-
-Slug : `feat/My-Branch!` → `feat-my-branch` (lowercase, alphanum+hyphens, max 63 chars)
+- **Cookie**: `hcrm_session`, HttpOnly, Secure (prod), SameSite=Lax, domain `.tuls.me`, 30d
+- **API tokens**: SHA-256 hashed, prefix `hcrm_`, returned once on creation
+- **Google OAuth**: Client ID `819344317236`
 
 ## Deployment
 
-Site statique déployé sur **yacrm.tuls.me**.
+- **Prod**: https://headless-crm.tuls.me (51.15.225.121)
+- **Frontend**: CI/CD `.github/workflows/deploy.yml` → scp `dist/` → `/var/www/headless-crm`
+- **Backend**: systemd `headless-crm.service`, env `/opt/headless-crm/.env`
+- **Nginx**: `/etc/nginx/sites-enabled/headless-crm` — SPA + `/api` proxy → `:3002`
+- **DB**: `hcrm` on prod PostgreSQL
+- **Preview**: `https://{slug}.headless-crm.tuls.me` per PR
+- **Old URL**: yacrm.tuls.me → 301 redirect
 
-- **CI/CD** : `.github/workflows/deploy.yml` — build + scp `dist/` vers `/var/www/yacrm` sur push main
-- **Dev local** : `dev/start.sh` — Vite port 3001, logs dans `dev/dev.log`
-- **DNS** : Scaleway DNS, A record `yacrm` → `51.15.225.121`
-- **SSL** : Let's Encrypt via cert `tuls.me` (multi-SAN)
-- **Nginx** : `/etc/nginx/sites-enabled/yacrm`, SPA `try_files → /index.html`
+## MCP Server
+
+`server/mcp.ts` — stdio MCP wrapping the REST API. 17 tools: CRUD organizations/people/deals, log activities, manage tasks, change deal stages.
+
+**Config** (`~/.claude.json` → `/data/alexis`):
+```json
+{
+  "headless-crm": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["tsx", "/data/alexis/headless-crm/server/mcp.ts"],
+    "env": {
+      "HCRM_API_URL": "https://headless-crm.tuls.me",
+      "HCRM_API_TOKEN": "hcrm_..."
+    }
+  }
+}
+```
 
 ## Docs
 
 Detailed docs in `docs/`:
-- `data-model.md` — Types, champs et relations des 4 entités
+- `data-model.md` — Schema tables, fields, relations, enums

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const isPreview = process.env.YACRM_PREVIEW === 'true';
+const isPreview = process.env.HCRM_PREVIEW === 'true';
 
 export default defineConfig({
   plugins: [
@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'YACRM - Gestion Commerciale PME',
-        short_name: 'YACRM',
-        description: 'CRM concu pour les PME africaines. Gerez vos clients, contacts et campagnes.',
+        name: 'Headless CRM',
+        short_name: 'Headless CRM',
+        description: 'API-first contact management for people, organizations, deals and campaigns.',
         theme_color: '#1e3a5f',
         background_color: '#f8f9fc',
         display: 'standalone',
@@ -44,6 +44,14 @@ export default defineConfig({
       },
     })] : []),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: `http://localhost:${process.env.API_PORT || '5172'}`,
+        changeOrigin: true,
+      },
+    },
+  },
   optimizeDeps: {
     exclude: ['lucide-react'],
   },

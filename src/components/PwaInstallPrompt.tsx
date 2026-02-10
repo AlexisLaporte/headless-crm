@@ -6,9 +6,11 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+const DISMISS_KEY = 'hcrm_pwa_dismissed';
+
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1');
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -30,6 +32,7 @@ export function PwaInstallPrompt() {
   };
 
   const handleDismiss = () => {
+    localStorage.setItem(DISMISS_KEY, '1');
     setDismissed(true);
   };
 
@@ -42,20 +45,20 @@ export function PwaInstallPrompt() {
           <Download className="w-5 h-5 text-brand-950" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm">Installer YACRM</p>
-          <p className="text-xs text-brand-300 mt-0.5">Accedez au CRM directement depuis votre ecran d'accueil</p>
+          <p className="font-semibold text-sm">Install Headless CRM</p>
+          <p className="text-xs text-brand-300 mt-0.5">Add to your home screen for quick access</p>
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleInstall}
               className="px-3 py-1.5 bg-accent-500 hover:bg-accent-400 text-brand-950 text-xs font-semibold rounded-lg transition"
             >
-              Installer
+              Install
             </button>
             <button
               onClick={handleDismiss}
               className="px-3 py-1.5 text-brand-300 hover:text-white text-xs font-medium rounded-lg transition"
             >
-              Plus tard
+              Later
             </button>
           </div>
         </div>

@@ -4,10 +4,10 @@ import { ArrowLeft, Pencil, Trash2, Building2, Mail, Phone, Globe, MapPin, FileT
 import { useData } from '../contexts/DataContext';
 import { AiUpsellModal } from './AiUpsellModal';
 
-export function CompanyDetail() {
+export function OrganizationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { companies, contacts, updateCompany, deleteCompany } = useData();
+  const { organizations, people, updateOrganization, deleteOrganization } = useData();
   const [showAiModal, setShowAiModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,30 +22,30 @@ export function CompanyDetail() {
     notes: '',
   });
 
-  const company = companies.find((c) => c.id === id);
-  const companyContacts = contacts.filter((c) => c.company_id === id);
+  const org = organizations.find((c) => c.id === id);
+  const orgPeople = people.filter((p) => p.organization_id === id);
 
   const handleEdit = () => {
-    if (company) {
+    if (org) {
       setFormData({
-        name: company.name,
-        industry: company.industry,
-        website: company.website,
-        phone: company.phone,
-        email: company.email,
-        address: company.address,
-        city: company.city,
-        country: company.country,
-        notes: company.notes,
+        name: org.name,
+        industry: org.industry,
+        website: org.website,
+        phone: org.phone,
+        email: org.email,
+        address: org.address,
+        city: org.city,
+        country: org.country,
+        notes: org.notes,
       });
       setIsEditing(true);
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (company) {
-      updateCompany(company.id, formData);
+    if (org) {
+      await updateOrganization(org.id, formData);
       setIsEditing(false);
     }
   };
@@ -54,19 +54,19 @@ export function CompanyDetail() {
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    if (!company) return;
-    if (!confirm('Supprimer cette entreprise ?')) return;
-    deleteCompany(company.id);
-    navigate('/app/companies');
+  const handleDelete = async () => {
+    if (!org) return;
+    if (!confirm('Supprimer cette organisation ?')) return;
+    await deleteOrganization(org.id);
+    navigate('/app/organizations');
   };
 
-  if (!company) {
+  if (!org) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Entreprise introuvable</p>
-        <button onClick={() => navigate('/app/companies')} className="mt-4 text-brand-600 hover:text-brand-700 font-medium transition-colors">
-          Retour aux entreprises
+        <p className="text-gray-500">Organisation introuvable</p>
+        <button onClick={() => navigate('/app/organizations')} className="mt-4 text-brand-600 hover:text-brand-700 font-medium transition-colors">
+          Retour aux organisations
         </button>
       </div>
     );
@@ -77,7 +77,7 @@ export function CompanyDetail() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/app/companies')} className="p-2 hover:bg-surface-100 rounded-xl transition">
+          <button onClick={() => navigate('/app/organizations')} className="p-2 hover:bg-surface-100 rounded-xl transition">
             <ArrowLeft className="w-5 h-5 text-gray-500" />
           </button>
           <div className="flex items-center gap-3">
@@ -85,9 +85,9 @@ export function CompanyDetail() {
               <Building2 className="w-5.5 h-5.5 text-brand-700" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{company.name}</h2>
-              {company.industry && (
-                <p className="text-sm text-gray-500 mt-0.5">{company.industry}</p>
+              <h2 className="text-xl font-bold text-gray-900">{org.name}</h2>
+              {org.industry && (
+                <p className="text-sm text-gray-500 mt-0.5">{org.industry}</p>
               )}
             </div>
           </div>
@@ -112,7 +112,7 @@ export function CompanyDetail() {
         /* Mode Edition */
         <div className="card p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-900">Modifier l'entreprise</h3>
+            <h3 className="text-lg font-bold text-gray-900">Modifier l'organisation</h3>
             <button
               onClick={() => setShowAiModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 font-medium rounded-xl hover:bg-purple-100 transition-colors"
@@ -240,56 +240,56 @@ export function CompanyDetail() {
                 </button>
               </div>
               <div className="space-y-4">
-                {company.email && (
+                {org.email && (
                   <div className="flex items-start gap-3">
                     <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-xs font-medium text-gray-500">Email</p>
-                      <a href={`mailto:${company.email}`} className="text-sm text-brand-600 hover:text-brand-700">
-                        {company.email}
+                      <a href={`mailto:${org.email}`} className="text-sm text-brand-600 hover:text-brand-700">
+                        {org.email}
                       </a>
                     </div>
                   </div>
                 )}
-                {company.phone && (
+                {org.phone && (
                   <div className="flex items-start gap-3">
                     <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-xs font-medium text-gray-500">Telephone</p>
-                      <a href={`tel:${company.phone}`} className="text-sm text-gray-900">
-                        {company.phone}
+                      <a href={`tel:${org.phone}`} className="text-sm text-gray-900">
+                        {org.phone}
                       </a>
                     </div>
                   </div>
                 )}
-                {company.website && (
+                {org.website && (
                   <div className="flex items-start gap-3">
                     <Globe className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-xs font-medium text-gray-500">Site web</p>
                       <a
-                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                        href={org.website.startsWith('http') ? org.website : `https://${org.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-brand-600 hover:text-brand-700"
                       >
-                        {company.website}
+                        {org.website}
                       </a>
                     </div>
                   </div>
                 )}
-                {(company.address || company.city || company.country) && (
+                {(org.address || org.city || org.country) && (
                   <div className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-xs font-medium text-gray-500">Adresse</p>
                       <p className="text-sm text-gray-900">
-                        {[company.address, company.city, company.country].filter(Boolean).join(', ')}
+                        {[org.address, org.city, org.country].filter(Boolean).join(', ')}
                       </p>
                     </div>
                   </div>
                 )}
-                {!company.email && !company.phone && !company.website && !company.address && !company.city && (
+                {!org.email && !org.phone && !org.website && !org.address && !org.city && (
                   <p className="text-sm text-gray-400 italic">Aucune information de contact</p>
                 )}
               </div>
@@ -301,8 +301,8 @@ export function CompanyDetail() {
                 <FileText className="w-4 h-4 text-gray-400" />
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Notes</h3>
               </div>
-              {company.notes ? (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{company.notes}</p>
+              {org.notes ? (
+                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{org.notes}</p>
               ) : (
                 <p className="text-sm text-gray-400 italic">Aucune note</p>
               )}
@@ -312,8 +312,8 @@ export function CompanyDetail() {
             <div className="card p-5">
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Historique</h3>
               <div className="space-y-2 text-sm text-gray-500">
-                <p>Cree le {new Date(company.created_at).toLocaleDateString('fr-FR')}</p>
-                <p>Modifie le {new Date(company.updated_at).toLocaleDateString('fr-FR')}</p>
+                <p>Cree le {new Date(org.created_at).toLocaleDateString('fr-FR')}</p>
+                <p>Modifie le {new Date(org.updated_at).toLocaleDateString('fr-FR')}</p>
               </div>
             </div>
           </div>
@@ -324,12 +324,12 @@ export function CompanyDetail() {
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-4 h-4 text-gray-400" />
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-                  Contacts ({companyContacts.length})
+                  Personnes ({orgPeople.length})
                 </h3>
               </div>
 
-              {companyContacts.length === 0 ? (
-                <p className="text-sm text-gray-400 italic py-4">Aucun contact associe a cette entreprise</p>
+              {orgPeople.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-4">Aucune personne associee a cette organisation</p>
               ) : (
                 <div className="overflow-x-auto -mx-5">
                   <table className="w-full">
@@ -342,7 +342,7 @@ export function CompanyDetail() {
                       </tr>
                     </thead>
                     <tbody>
-                      {companyContacts.map((contact) => (
+                      {orgPeople.map((contact) => (
                         <tr key={contact.id} className="border-b border-surface-100 hover:bg-surface-50 transition-colors">
                           <td className="py-3 px-5">
                             <div className="flex items-center gap-2.5">

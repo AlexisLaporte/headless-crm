@@ -3,8 +3,8 @@ import { Plus, User, Mail, Phone, Building2, Pencil, Trash2, X, Search, Sparkles
 import { useData } from '../contexts/DataContext';
 import { AiUpsellModal } from './AiUpsellModal';
 
-export function Contacts() {
-  const { contacts, companies, createContact, updateContact, deleteContact } = useData();
+export function People() {
+  const { people, organizations, createPerson, updatePerson, deletePerson } = useData();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -15,42 +15,42 @@ export function Contacts() {
     email: '',
     phone: '',
     job_title: '',
-    company_id: '',
+    organization_id: '',
     notes: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { ...formData, company_id: formData.company_id || null };
+    const data = { ...formData, organization_id: formData.organization_id || null };
     if (editingId) {
-      updateContact(editingId, data);
+      await updatePerson(editingId, data);
     } else {
-      createContact(data);
+      await createPerson(data);
     }
     handleCloseModal();
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Supprimer ce contact ?')) return;
-    deleteContact(id);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Supprimer cette personne ?')) return;
+    await deletePerson(id);
   };
 
-  const handleEdit = (contact: typeof contacts[0]) => {
-    setEditingId(contact.id);
+  const handleEdit = (person: typeof people[0]) => {
+    setEditingId(person.id);
     setFormData({
-      first_name: contact.first_name,
-      last_name: contact.last_name,
-      email: contact.email,
-      phone: contact.phone,
-      job_title: contact.job_title,
-      company_id: contact.company_id || '',
-      notes: contact.notes,
+      first_name: person.first_name,
+      last_name: person.last_name,
+      email: person.email,
+      phone: person.phone,
+      job_title: person.job_title,
+      organization_id: person.organization_id || '',
+      notes: person.notes,
     });
     setShowModal(true);
   };
 
   const resetForm = () => {
-    setFormData({ first_name: '', last_name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' });
+    setFormData({ first_name: '', last_name: '', email: '', phone: '', job_title: '', organization_id: '', notes: '' });
   };
 
   const handleCloseModal = () => {
@@ -59,25 +59,25 @@ export function Contacts() {
     resetForm();
   };
 
-  const filtered = contacts.filter((c) =>
-    `${c.first_name} ${c.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase()) ||
-    c.job_title.toLowerCase().includes(search.toLowerCase())
+  const filtered = people.filter((p) =>
+    `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
+    p.email.toLowerCase().includes(search.toLowerCase()) ||
+    p.job_title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const withCompany = contacts.filter(c => c.company_id).length;
+  const withOrg = people.filter(p => p.organization_id).length;
 
   return (
     <div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Contacts</h2>
-          <p className="text-gray-500 mt-1">{contacts.length} contact{contacts.length > 1 ? 's' : ''} au total</p>
+          <h2 className="text-2xl font-bold text-gray-900">Personnes</h2>
+          <p className="text-gray-500 mt-1">{people.length} personne{people.length > 1 ? 's' : ''} au total</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary">
           <Plus className="w-4 h-4" />
-          <span>Nouveau contact</span>
+          <span>Nouvelle personne</span>
         </button>
       </div>
 
@@ -85,24 +85,24 @@ export function Contacts() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="card px-4 py-3">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.length}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{people.length}</p>
         </div>
         <div className="card px-4 py-3">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avec entreprise</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{withCompany}</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avec organisation</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{withOrg}</p>
         </div>
         <div className="card px-4 py-3">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Independants</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.length - withCompany}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{people.length - withOrg}</p>
         </div>
         <div className="card px-4 py-3">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avec email</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{contacts.filter(c => c.email).length}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{people.filter(p => p.email).length}</p>
         </div>
       </div>
 
       {/* Search */}
-      {contacts.length > 0 && (
+      {people.length > 0 && (
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -115,35 +115,35 @@ export function Contacts() {
         </div>
       )}
 
-      {contacts.length === 0 ? (
+      {people.length === 0 ? (
         <div className="card p-12 text-center">
           <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <User className="w-7 h-7 text-emerald-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun contact</h3>
-          <p className="text-gray-500 mb-6">Commencez par ajouter votre premier contact</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune personne</h3>
+          <p className="text-gray-500 mb-6">Commencez par ajouter votre premiere personne</p>
           <button onClick={() => setShowModal(true)} className="btn-primary">
             <Plus className="w-4 h-4" />
-            <span>Ajouter un contact</span>
+            <span>Ajouter une personne</span>
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((contact) => (
-            <div key={contact.id} className="card p-5">
+          {filtered.map((person) => (
+            <div key={person.id} className="card p-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-bold text-emerald-700">
-                      {contact.first_name.charAt(0)}{contact.last_name.charAt(0)}
+                      {person.first_name.charAt(0)}{person.last_name.charAt(0)}
                     </span>
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">
-                      {contact.first_name} {contact.last_name}
+                      {person.first_name} {person.last_name}
                     </h3>
-                    {contact.job_title && (
-                      <p className="text-sm text-gray-500 truncate">{contact.job_title}</p>
+                    {person.job_title && (
+                      <p className="text-sm text-gray-500 truncate">{person.job_title}</p>
                     )}
                   </div>
                 </div>
@@ -151,32 +151,32 @@ export function Contacts() {
                   <button onClick={() => setShowAiModal(true)} className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" title="Enrichir avec l'IA">
                     <Sparkles className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleEdit(contact)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-surface-100 rounded-lg transition">
+                  <button onClick={() => handleEdit(person)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-surface-100 rounded-lg transition">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleDelete(contact.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                  <button onClick={() => handleDelete(person.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1.5 pt-3 border-t border-surface-100">
-                {contact.companies && (
+                {person.organization && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Building2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{contact.companies.name}</span>
+                    <span className="truncate">{person.organization.name}</span>
                   </div>
                 )}
-                {contact.email && (
+                {person.email && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{contact.email}</span>
+                    <span className="truncate">{person.email}</span>
                   </div>
                 )}
-                {contact.phone && (
+                {person.phone && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span>{contact.phone}</span>
+                    <span>{person.phone}</span>
                   </div>
                 )}
               </div>
@@ -190,7 +190,7 @@ export function Contacts() {
         </div>
       )}
 
-      <AiUpsellModal open={showAiModal} onClose={() => setShowAiModal(false)} feature="Enrichir le profil du contact (trouver l'email, le telephone, le profil LinkedIn...)" />
+      <AiUpsellModal open={showAiModal} onClose={() => setShowAiModal(false)} feature="Enrichir le profil de la personne (trouver l'email, le telephone, le profil LinkedIn...)" />
 
       {/* Modal */}
       {showModal && (
@@ -198,7 +198,7 @@ export function Contacts() {
           <div className="modal-content">
             <div className="sticky top-0 bg-white border-b border-surface-200 px-6 py-4 flex justify-between items-center rounded-t-2xl">
               <h3 className="text-lg font-bold text-gray-900">
-                {editingId ? 'Modifier le contact' : 'Nouveau contact'}
+                {editingId ? 'Modifier la personne' : 'Nouvelle personne'}
               </h3>
               <button onClick={handleCloseModal} className="btn-ghost p-2">
                 <X className="w-5 h-5" />
@@ -217,11 +217,11 @@ export function Contacts() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Entreprise</label>
-                <select value={formData.company_id} onChange={(e) => setFormData({ ...formData, company_id: e.target.value })} className="input-field">
-                  <option value="">Aucune entreprise</option>
-                  {companies.map((company) => (
-                    <option key={company.id} value={company.id}>{company.name}</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Organisation</label>
+                <select value={formData.organization_id} onChange={(e) => setFormData({ ...formData, organization_id: e.target.value })} className="input-field">
+                  <option value="">Aucune organisation</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
                 </select>
               </div>

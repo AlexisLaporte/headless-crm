@@ -30,7 +30,7 @@ jobs:
       - name: Install & Build
         run: npm ci && npm run build
         env:
-          YACRM_PREVIEW: 'true'
+          HCRM_PREVIEW: 'true'
 
       - name: Create preview directory
         uses: appleboy/ssh-action@v1.0.3
@@ -38,7 +38,7 @@ jobs:
           host: 51.15.225.121
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p /var/www/yacrm/preview/${{ steps.slug.outputs.slug }}
+          script: mkdir -p /var/www/headless-crm/preview/${{ steps.slug.outputs.slug }}
 
       - name: Upload dist
         uses: appleboy/scp-action@v0.1.7
@@ -47,7 +47,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist/*"
-          target: "/var/www/yacrm/preview/${{ steps.slug.outputs.slug }}"
+          target: "/var/www/headless-crm/preview/${{ steps.slug.outputs.slug }}"
           strip_components: 1
 
       - name: Create GitHub deployment
@@ -55,7 +55,7 @@ jobs:
         with:
           script: |
             const slug = '${{ steps.slug.outputs.slug }}';
-            const url = `https://${slug}.yacrm.tuls.me`;
+            const url = `https://${slug}.headless-crm.tuls.me`;
             const { data: deployment } = await github.rest.repos.createDeployment({
               owner: context.repo.owner,
               repo: context.repo.repo,

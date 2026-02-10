@@ -5,8 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { DataProvider } from '../contexts/DataContext';
 
 const mainTabs = [
-  { to: '/app/companies', label: 'Entreprises', icon: Building2 },
-  { to: '/app/contacts', label: 'Contacts', icon: Users },
+  { to: '/app/organizations', label: 'Organisations', icon: Building2 },
+  { to: '/app/people', label: 'Personnes', icon: Users },
   { to: '/app/campaigns', label: 'Campagnes', icon: Megaphone },
 ];
 
@@ -22,8 +22,8 @@ export function Layout() {
 
   const activeLabel = allTabs.find(t => location.pathname.startsWith(t.to))?.label || '';
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     navigate('/');
   };
 
@@ -35,7 +35,7 @@ export function Layout() {
     }`;
 
   return (
-    <DataProvider userId={user!.id}>
+    <DataProvider>
       <div className="min-h-screen bg-surface-50 flex">
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-brand-950 text-white fixed inset-y-0 left-0 z-40">
@@ -44,8 +44,7 @@ export function Layout() {
             <div className="w-8 h-8 bg-accent-500 rounded-lg flex items-center justify-center">
               <LayoutDashboard className="w-4 h-4 text-brand-950" />
             </div>
-            <span className="text-lg font-bold tracking-tight">YACRM</span>
-            <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded">DEMO</span>
+            <span className="text-lg font-bold tracking-tight">Headless CRM</span>
           </div>
 
           {/* Navigation */}
@@ -119,7 +118,7 @@ export function Layout() {
                 <div className="w-7 h-7 bg-brand-700 rounded-lg flex items-center justify-center">
                   <LayoutDashboard className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-bold text-gray-900">YACRM</span>
+                <span className="font-bold text-gray-900">Headless CRM</span>
               </div>
             </div>
             <span className="text-sm font-medium text-gray-500">{activeLabel}</span>
@@ -136,7 +135,7 @@ export function Layout() {
                   <div className="w-7 h-7 bg-accent-500 rounded-lg flex items-center justify-center">
                     <LayoutDashboard className="w-3.5 h-3.5 text-brand-950" />
                   </div>
-                  <span className="text-lg font-bold">YACRM</span>
+                  <span className="text-lg font-bold">Headless CRM</span>
                 </div>
                 <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-lg hover:bg-white/10">
                   <X className="w-5 h-5" />
